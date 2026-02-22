@@ -1,11 +1,15 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:task_manager/models/user_model.dart';
 import 'package:task_manager/core/errors/exceptions.dart';
 
 abstract class AuthRemoteDataSource {
   Future<UserModel> loginWithEmailPassword(String email, String password);
-  Future<UserModel> registerWithEmailPassword(String email, String password, String name);
+  Future<UserModel> registerWithEmailPassword(
+    String email,
+    String password,
+    String name,
+  );
   Future<void> logout();
   Future<UserModel?> getCurrentUser();
 }
@@ -20,7 +24,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   });
 
   @override
-  Future<UserModel> loginWithEmailPassword(String email, String password) async {
+  Future<UserModel> loginWithEmailPassword(
+    String email,
+    String password,
+  ) async {
     try {
       final userCredential = await firebaseAuth.signInWithEmailAndPassword(
         email: email,
@@ -42,7 +49,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<UserModel> registerWithEmailPassword(String email, String password, String name) async {
+  Future<UserModel> registerWithEmailPassword(
+    String email,
+    String password,
+    String name,
+  ) async {
     try {
       final userCredential = await firebaseAuth.createUserWithEmailAndPassword(
         email: email,
@@ -68,7 +79,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on FirebaseAuthException catch (e) {
       throw AuthException(e.message ?? 'Registration failed.');
     } catch (e) {
-      throw ServerException('An unexpected error occurred during registration.');
+      throw ServerException(
+        'An unexpected error occurred during registration.',
+      );
     }
   }
 

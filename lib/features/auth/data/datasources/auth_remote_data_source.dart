@@ -79,6 +79,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on FirebaseAuthException catch (e) {
       throw AuthException(e.message ?? 'Registration failed.');
     } catch (e) {
+      print('DEBUG: Registration Firestore Error: $e');
       throw ServerException(
         'An unexpected error occurred during registration.',
       );

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   final String id;
   final String name;
@@ -43,7 +45,7 @@ class UserModel {
     return {
       'name': name,
       'email': email,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': Timestamp.fromDate(createdAt),
       'themeMode': themeMode,
     };
   }

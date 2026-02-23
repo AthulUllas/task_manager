@@ -3,7 +3,7 @@ class TaskModel {
   final String userId;
   final String title;
   final String description;
-  final int priority;
+  final String priority;
   final String category;
   final DateTime dueDate;
   final bool isCompleted;
@@ -26,7 +26,7 @@ class TaskModel {
     String? userId,
     String? title,
     String? description,
-    int? priority,
+    String? priority,
     String? category,
     DateTime? dueDate,
     bool? isCompleted,
@@ -51,25 +51,22 @@ class TaskModel {
       userId: json['user_id']?.toString() ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      priority: (json['priority'] as num?)?.toInt() ?? 0,
-      category: json['category'] as String? ?? 'General',
+      priority: json['priority'] as String? ?? 'Medium',
+      category: json['category'] as String? ?? 'Personal',
       dueDate: _parseDate(json['due_date']),
       isCompleted: json['is_completed'] as bool? ?? false,
-      createdDate: _parseDate(json['created_date'] ?? json['createdAt']),
+      createdDate: _parseDate(json['created_date'] ?? json['createdAt'] ?? json['created_at']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'user_id': userId,
       'title': title,
       'description': description,
+      'is_completed': isCompleted,
+      'due_date': dueDate.toIso8601String(),
       'priority': priority,
       'category': category,
-      'due_date': dueDate.toIso8601String(),
-      'is_completed': isCompleted,
-      'created_date': createdDate.toIso8601String(),
     };
   }
 
@@ -79,7 +76,7 @@ class TaskModel {
       return DateTime.tryParse(dateData) ?? DateTime.now();
     }
     try {
-      return (dateData as dynamic).toDate(); // For Firestore timestamps if needed
+      return (dateData as dynamic).toDate();
     } catch (_) {
       return DateTime.now();
     }

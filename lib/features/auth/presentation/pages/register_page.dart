@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:task_manager/core/errors/exceptions.dart';
-import 'package:task_manager/features/auth/data/datasources/auth_remote_data_source.dart';
-import 'package:task_manager/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:task_manager/features/auth/domain/usecases/register_usecase.dart';
+import 'package:provider/provider.dart';
+import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart'
+    as auth;
 import 'package:task_manager/core/presentation/widgets/glass_container.dart';
-import 'package:task_manager/core/presentation/widgets/genz_text_field.dart';
-import 'package:task_manager/core/presentation/widgets/genz_button.dart';
+import 'package:task_manager/core/presentation/widgets/cust_text_field.dart';
+import 'package:task_manager/core/presentation/widgets/cust_button.dart';
+import 'package:task_manager/features/tasks/presentation/pages/dashboard_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -21,53 +19,38 @@ class _RegisterPageState extends State<RegisterPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
-
-  late final RegisterUseCase _registerUseCase;
-
-  @override
-  void initState() {
-    super.initState();
-    final remoteDataSource = AuthRemoteDataSourceImpl(
-      firebaseAuth: FirebaseAuth.instance,
-      firestore: FirebaseFirestore.instance,
-    );
-    final repository = AuthRepositoryImpl(remoteDataSource: remoteDataSource);
-    _registerUseCase = RegisterUseCase(repository);
-  }
 
   void _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-    try {
-      await _registerUseCase(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-        _nameController.text.trim(),
-      );
-      if (!mounted) return;
+    final provider = context.read<auth.AuthProvider>();
+    await provider.register(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+      _nameController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (provider.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration Successful!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.redAccent),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('An unexpected error occurred.'),
+        SnackBar(
+          content: Text(provider.error!),
           backgroundColor: Colors.redAccent,
         ),
       );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration Successful! 🔥'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardPage()),
+        (route) => false,
+      );
     }
   }
 
@@ -105,49 +88,58 @@ class _RegisterPageState extends State<RegisterPage> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      CustomTextField(
+                      CustTextField(
                         controller: _nameController,
                         hintText: 'Full Name',
                         prefixIcon: Icons.person_outline,
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty)
+                          if (value == null || value.trim().isEmpty) {
                             return 'Name is required';
+                          }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-                      CustomTextField(
+                      CustTextField(
                         controller: _emailController,
                         hintText: 'Email',
                         prefixIcon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
-                          if (value == null || value.isEmpty)
+                          if (value == null || value.isEmpty) {
                             return 'Email is required';
-                          if (!value.contains('@'))
+                          }
+                          if (!value.contains('@')) {
                             return 'Enter a valid email';
+                          }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-                      CustomTextField(
+                      CustTextField(
                         controller: _passwordController,
                         hintText: 'Password',
                         prefixIcon: Icons.lock_outline,
                         obscureText: true,
                         validator: (value) {
-                          if (value == null || value.isEmpty)
+                          if (value == null || value.isEmpty) {
                             return 'Password is required';
-                          if (value.length < 6)
+                          }
+                          if (value.length < 6) {
                             return 'Password must be at least 6 characters';
+                          }
                           return null;
                         },
                       ),
                       const SizedBox(height: 32),
-                      CustomButton(
-                        text: 'SIGN UP',
-                        isLoading: _isLoading,
-                        onPressed: _register,
+                      Consumer<auth.AuthProvider>(
+                        builder: (context, provider, child) {
+                          return CustButton(
+                            text: 'SIGN UP',
+                            isLoading: provider.isLoading,
+                            onPressed: provider.isLoading ? null : _register,
+                          );
+                        },
                       ),
                     ],
                   ),

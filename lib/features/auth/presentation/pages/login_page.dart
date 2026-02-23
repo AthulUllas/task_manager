@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:task_manager/core/errors/exceptions.dart';
-import 'package:task_manager/features/auth/data/datasources/auth_remote_data_source.dart';
-import 'package:task_manager/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:task_manager/features/auth/domain/usecases/login_usecase.dart';
+import 'package:provider/provider.dart';
+import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart'
+    as auth;
 import 'package:task_manager/core/presentation/widgets/glass_container.dart';
-import 'package:task_manager/core/presentation/widgets/genz_text_field.dart';
-import 'package:task_manager/core/presentation/widgets/genz_button.dart';
+import 'package:task_manager/core/presentation/widgets/cust_text_field.dart';
+import 'package:task_manager/core/presentation/widgets/cust_button.dart';
 import 'package:task_manager/features/auth/presentation/pages/register_page.dart';
+import 'package:task_manager/features/tasks/presentation/pages/dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,53 +19,37 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
-
-  late final LoginUseCase _loginUseCase;
-
-  @override
-  void initState() {
-    super.initState();
-    final remoteDataSource = AuthRemoteDataSourceImpl(
-      firebaseAuth: FirebaseAuth.instance,
-      firestore: FirebaseFirestore.instance,
-    );
-    final repository = AuthRepositoryImpl(remoteDataSource: remoteDataSource);
-    _loginUseCase = LoginUseCase(repository);
-  }
 
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-    try {
-      await _loginUseCase(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
+    final provider = context.read<auth.AuthProvider>();
+    await provider.login(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
+
+    if (provider.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login Successful!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.redAccent),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('An unexpected error occurred.'),
+        SnackBar(
+          content: Text(provider.error!),
           backgroundColor: Colors.redAccent,
         ),
       );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login Successful! 🚀'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardPage()),
+        (route) => false,
+      );
     }
   }
 
@@ -102,30 +84,34 @@ class _LoginPageState extends State<LoginPage> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      CustomTextField(
+                      CustTextField(
                         controller: _emailController,
                         hintText: 'Email',
                         prefixIcon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
-                          if (value == null || value.isEmpty)
+                          if (value == null || value.isEmpty) {
                             return 'Email is required';
-                          if (!value.contains('@'))
+                          }
+                          if (!value.contains('@')) {
                             return 'Enter a valid email';
+                          }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-                      CustomTextField(
+                      CustTextField(
                         controller: _passwordController,
                         hintText: 'Password',
                         prefixIcon: Icons.lock_outline,
                         obscureText: true,
                         validator: (value) {
-                          if (value == null || value.isEmpty)
+                          if (value == null || value.isEmpty) {
                             return 'Password is required';
-                          if (value.length < 6)
+                          }
+                          if (value.length < 6) {
                             return 'Password must be at least 6 characters';
+                          }
                           return null;
                         },
                       ),
@@ -140,12 +126,17 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      CustomButton(
-                        text: 'LOG IN',
-                        isLoading: _isLoading,
-                        onPressed: _login,
+                      const SizedBox(height: 30),
+                      Consumer<auth.AuthProvider>(
+                        builder: (context, provider, child) {
+                          return CustButton(
+                            text: 'LET ME IN',
+                            onPressed: provider.isLoading ? null : _login,
+                            isLoading: provider.isLoading,
+                          );
+                        },
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),

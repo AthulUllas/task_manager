@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class CustomTextField extends StatelessWidget {
+class CustTextField extends StatelessWidget {
   final String hintText;
   final IconData prefixIcon;
   final bool obscureText;
@@ -8,7 +8,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
 
-  const CustomTextField({
+  const CustTextField({
     super.key,
     required this.hintText,
     required this.prefixIcon,
@@ -37,8 +37,6 @@ class CustomTextField extends StatelessWidget {
           hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
           prefixIcon: Icon(prefixIcon, color: Colors.white70),
           border: InputBorder.none,
-          // Hide default error text as we handle it differently if needed,
-          // or let TextFormField show it by giving it no border.
           errorStyle: const TextStyle(color: Color(0xFFE94057), height: 0.8),
           contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),

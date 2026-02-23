@@ -55,8 +55,6 @@ class UserModel {
     if (dateData is String) {
       return DateTime.tryParse(dateData) ?? DateTime.now();
     }
-    // If using Firestore Timestamp, we can check for toDate() method:
-    // if (dateData is Timestamp) return dateData.toDate();
     try {
       return (dateData as dynamic).toDate();
     } catch (_) {

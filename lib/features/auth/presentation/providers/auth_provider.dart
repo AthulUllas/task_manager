@@ -21,7 +21,7 @@ class AuthState {
     return AuthState(
       user: user ?? this.user,
       isLoading: isLoading ?? this.isLoading,
-      error: error, // If error is passed, it replaces the current error (can be null)
+      error: error,
     );
   }
 }
@@ -39,12 +39,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required LogoutUseCase logoutUseCase,
     required GetCurrentUserUseCase getCurrentUserUseCase,
     required UpdateProfileUseCase updateProfileUseCase,
-  })  : _loginUseCase = loginUseCase,
-        _registerUseCase = registerUseCase,
-        _logoutUseCase = logoutUseCase,
-        _getCurrentUserUseCase = getCurrentUserUseCase,
-        _updateProfileUseCase = updateProfileUseCase,
-        super(AuthState());
+  }) : _loginUseCase = loginUseCase,
+       _registerUseCase = registerUseCase,
+       _logoutUseCase = logoutUseCase,
+       _getCurrentUserUseCase = getCurrentUserUseCase,
+       _updateProfileUseCase = updateProfileUseCase,
+       super(AuthState());
 
   Future<void> fetchProfile() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -52,7 +52,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await _getCurrentUserUseCase();
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Failed to fetch user profile.');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to fetch user profile.',
+      );
     }
   }
 
@@ -66,7 +69,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } on ServerException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'An unexpected error occurred during login.');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred during login.',
+      );
     }
   }
 
@@ -80,7 +86,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } on ServerException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'An unexpected error occurred during registration.');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred during registration.',
+      );
     }
   }
 
@@ -88,7 +97,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _logoutUseCase();
-      state = AuthState(); // Reset state
+      state = AuthState();
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Failed to logout.');
     }
@@ -99,16 +108,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _updateProfileUseCase(state.user!.id, {'name': name});
-      state = state.copyWith(user: state.user!.copyWith(name: name), isLoading: false);
+      state = state.copyWith(
+        user: state.user!.copyWith(name: name),
+        isLoading: false,
+      );
     } on ServerException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'An unexpected error occurred while updating profile.');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred while updating profile.',
+      );
     }
   }
 }
 
-// Repositories & Scaffolding
 final _authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   return AuthRemoteDataSourceImpl(
     firebaseAuth: ref.watch(firebaseAuthProvider),
@@ -117,17 +131,27 @@ final _authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
 });
 
 final authRepositoryProvider = Provider<AuthRepositoryImpl>((ref) {
-  return AuthRepositoryImpl(remoteDataSource: ref.watch(_authRemoteDataSourceProvider));
+  return AuthRepositoryImpl(
+    remoteDataSource: ref.watch(_authRemoteDataSourceProvider),
+  );
 });
 
-// Use Cases
-final loginUseCaseProvider = Provider<LoginUseCase>((ref) => LoginUseCase(ref.watch(authRepositoryProvider)));
-final registerUseCaseProvider = Provider<RegisterUseCase>((ref) => RegisterUseCase(ref.watch(authRepositoryProvider)));
-final logoutUseCaseProvider = Provider<LogoutUseCase>((ref) => LogoutUseCase(ref.watch(authRepositoryProvider)));
-final getCurrentUserUseCaseProvider = Provider<GetCurrentUserUseCase>((ref) => GetCurrentUserUseCase(ref.watch(authRepositoryProvider)));
-final updateProfileUseCaseProvider = Provider<UpdateProfileUseCase>((ref) => UpdateProfileUseCase(ref.watch(authRepositoryProvider)));
+final loginUseCaseProvider = Provider<LoginUseCase>(
+  (ref) => LoginUseCase(ref.watch(authRepositoryProvider)),
+);
+final registerUseCaseProvider = Provider<RegisterUseCase>(
+  (ref) => RegisterUseCase(ref.watch(authRepositoryProvider)),
+);
+final logoutUseCaseProvider = Provider<LogoutUseCase>(
+  (ref) => LogoutUseCase(ref.watch(authRepositoryProvider)),
+);
+final getCurrentUserUseCaseProvider = Provider<GetCurrentUserUseCase>(
+  (ref) => GetCurrentUserUseCase(ref.watch(authRepositoryProvider)),
+);
+final updateProfileUseCaseProvider = Provider<UpdateProfileUseCase>(
+  (ref) => UpdateProfileUseCase(ref.watch(authRepositoryProvider)),
+);
 
-// AuthProvider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(
     loginUseCase: ref.watch(loginUseCaseProvider),

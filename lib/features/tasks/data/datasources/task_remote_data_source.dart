@@ -67,7 +67,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
     if (response.statusCode == 200) {
       final decodedResponse = json.decode(response.body);
       if (decodedResponse['status'] == 'success') {
-        return TaskModel.fromJson(decodedResponse['data']);
+        return TaskModel.fromJson(decodedResponse['data'], taskId: taskId);
       } else {
         throw ServerException(decodedResponse['message'] ?? 'Failed to retrieve task');
       }
@@ -87,7 +87,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
     if (response.statusCode == 200) {
       final decodedResponse = json.decode(response.body);
       if (decodedResponse['status'] == 'success') {
-        return TaskModel.fromJson(decodedResponse['data']);
+        return TaskModel.fromJson(decodedResponse['data'], taskId: taskId);
       } else {
         throw ServerException(decodedResponse['message'] ?? 'Failed to update task');
       }

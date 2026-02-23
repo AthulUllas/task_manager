@@ -26,8 +26,8 @@ class TaskNotifier extends StateNotifier<TaskState> {
   final TaskRepository _repository;
 
   TaskNotifier({required TaskRepository repository})
-      : _repository = repository,
-        super(TaskState());
+    : _repository = repository,
+      super(TaskState());
 
   Future<void> fetchTasks(String userId) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -37,7 +37,10 @@ class TaskNotifier extends StateNotifier<TaskState> {
     } on ServerException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'An unexpected error occurred while fetching tasks.');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'An unexpected error occurred while fetching tasks.',
+      );
     }
   }
 
@@ -45,7 +48,10 @@ class TaskNotifier extends StateNotifier<TaskState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final newTask = await _repository.createTask(task, userId);
-      state = state.copyWith(tasks: [newTask, ...state.tasks], isLoading: false);
+      state = state.copyWith(
+        tasks: [newTask, ...state.tasks],
+        isLoading: false,
+      );
     } on ServerException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
     } catch (e) {
@@ -53,13 +59,48 @@ class TaskNotifier extends StateNotifier<TaskState> {
     }
   }
 
-  Future<void> updateTaskStatus(String taskId, String userId, bool isCompleted) async {
+  Future<void> updateTaskStatus(
+    String taskId,
+    String userId,
+    bool isCompleted,
+  ) async {
+    final oldTasks = [...state.tasks];
     try {
-      final updatedTask = await _repository.updateTask(taskId, userId, {'is_completed': isCompleted});
-      final updatedTasks = state.tasks.map((t) => t.id == taskId ? updatedTask : t).toList();
-      state = state.copyWith(tasks: updatedTasks);
+      // Find the existing task
+      final taskToUpdate = state.tasks.firstWhere((t) => t.id == taskId);
+
+      final optimisticTasks = state.tasks.map((t) {
+        if (t.id == taskId) {
+          return t.copyWith(isCompleted: isCompleted);
+        }
+        return t;
+      }).toList();
+      state = state.copyWith(tasks: optimisticTasks);
+
+      final updates = {
+        'id': taskId,
+        'is_completed': isCompleted,
+        'completed': isCompleted,
+        'isCompleted': isCompleted,
+        'status': isCompleted ? 1 : 0,
+        'title': taskToUpdate.title,
+        'description': taskToUpdate.description,
+        'priority': taskToUpdate.priority,
+        'category': taskToUpdate.category,
+      };
+
+      final updatedTask = await _repository.updateTask(taskId, userId, updates);
+
+      final syncedTasks = state.tasks.map((t) {
+        if (t.id == taskId) {
+          return updatedTask;
+        }
+        return t;
+      }).toList();
+      state = state.copyWith(tasks: syncedTasks);
     } catch (e) {
-      state = state.copyWith(error: 'Failed to update task.');
+      // Revert if failed
+      state = state.copyWith(tasks: oldTasks, error: 'Failed to update task.');
     }
   }
 
@@ -74,16 +115,34 @@ class TaskNotifier extends StateNotifier<TaskState> {
   }
 }
 
-// Repositories & Scaffolding
+enum TaskFilter { all, pending, completed }
+
+final taskFilterProvider = StateProvider<TaskFilter>((ref) => TaskFilter.all);
+
+final filteredTasksProvider = Provider<List<TaskModel>>((ref) {
+  final filter = ref.watch(taskFilterProvider);
+  final taskState = ref.watch(taskProvider);
+
+  switch (filter) {
+    case TaskFilter.all:
+      return taskState.tasks;
+    case TaskFilter.pending:
+      return taskState.tasks.where((task) => !task.isCompleted).toList();
+    case TaskFilter.completed:
+      return taskState.tasks.where((task) => task.isCompleted).toList();
+  }
+});
+
 final _taskRemoteDataSourceProvider = Provider<TaskRemoteDataSource>((ref) {
   return TaskRemoteDataSourceImpl(client: ref.watch(httpClientProvider));
 });
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
-  return TaskRepositoryImpl(remoteDataSource: ref.watch(_taskRemoteDataSourceProvider));
+  return TaskRepositoryImpl(
+    remoteDataSource: ref.watch(_taskRemoteDataSourceProvider),
+  );
 });
 
-// TaskProvider
 final taskProvider = StateNotifierProvider<TaskNotifier, TaskState>((ref) {
   return TaskNotifier(repository: ref.watch(taskRepositoryProvider));
 });

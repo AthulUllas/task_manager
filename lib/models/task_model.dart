@@ -46,16 +46,37 @@ class TaskModel {
   }
 
   factory TaskModel.fromJson(Map<String, dynamic> json, {String? taskId}) {
+    final id =
+        taskId ??
+        json['id']?.toString() ??
+        json['_id']?.toString() ??
+        json['task_id']?.toString() ??
+        '';
+
+    final rawIsCompleted =
+        json['is_completed'] ?? json['completed'] ?? json['isCompleted'];
+    bool isCompleted = false;
+    if (rawIsCompleted is bool) {
+      isCompleted = rawIsCompleted;
+    } else if (rawIsCompleted is int) {
+      isCompleted = rawIsCompleted == 1;
+    } else if (rawIsCompleted is String) {
+      isCompleted =
+          rawIsCompleted.toLowerCase() == 'true' || rawIsCompleted == '1';
+    }
+
     return TaskModel(
-      id: taskId ?? json['id']?.toString() ?? '',
-      userId: json['user_id']?.toString() ?? '',
+      id: id,
+      userId: json['user_id']?.toString() ?? json['userId']?.toString() ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       priority: json['priority'] as String? ?? 'Medium',
       category: json['category'] as String? ?? 'Personal',
-      dueDate: _parseDate(json['due_date']),
-      isCompleted: json['is_completed'] as bool? ?? false,
-      createdDate: _parseDate(json['created_date'] ?? json['createdAt'] ?? json['created_at']),
+      dueDate: _parseDate(json['due_date'] ?? json['dueDate']),
+      isCompleted: isCompleted,
+      createdDate: _parseDate(
+        json['created_date'] ?? json['createdAt'] ?? json['created_at'],
+      ),
     );
   }
 

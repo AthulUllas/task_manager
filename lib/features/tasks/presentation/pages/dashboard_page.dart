@@ -42,6 +42,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               const SizedBox(height: 30),
               _buildStatsRow(),
               const SizedBox(height: 30),
+              _buildFilterChips(),
+              const SizedBox(height: 30),
               const Text(
                 'YOUR TASKS',
                 style: TextStyle(
@@ -144,7 +146,47 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
+  Widget _buildFilterChips() {
+    final activeFilter = ref.watch(taskFilterProvider);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: TaskFilter.values.map((filter) {
+          final isSelected = activeFilter == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: FilterChip(
+              label: Text(
+                filter.name.toUpperCase(),
+                style: TextStyle(
+                  color: isSelected ? Colors.black : Colors.white70,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                ref.read(taskFilterProvider.notifier).state = filter;
+              },
+              backgroundColor: const Color(0xFF1F1B24),
+              selectedColor: const Color(0xFFBB86FC),
+              checkmarkColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: isSelected ? Colors.transparent : Colors.white12,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildTaskList() {
+    final filteredTasks = ref.watch(filteredTasksProvider);
     final state = ref.watch(taskProvider);
     if (state.isLoading && state.tasks.isEmpty) {
       return const Center(
@@ -161,10 +203,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
     if (state.tasks.isEmpty) {
       return const Center(
-        child: Text(
-          'No tasks yet.',
-          style: TextStyle(color: Colors.white38),
-        ),
+        child: Text('No tasks yet.', style: TextStyle(color: Colors.white38)),
       );
     }
 
@@ -176,9 +215,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         }
       },
       child: ListView.builder(
-        itemCount: state.tasks.length,
+        itemCount: filteredTasks.length,
         itemBuilder: (context, index) {
-          final task = state.tasks[index];
+          final task = filteredTasks[index];
           return _buildTaskItem(task);
         },
       ),
@@ -187,44 +226,51 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildTaskItem(TaskModel task) {
     return Container(
+      key: ValueKey(task.id),
       margin: const EdgeInsets.only(bottom: 15),
       child: GlassContainer(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         child: Row(
           children: [
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 final user = FirebaseAuth.instance.currentUser;
                 if (user != null) {
-                  ref.read(taskProvider.notifier).updateTaskStatus(
+                  ref
+                      .read(taskProvider.notifier)
+                      .updateTaskStatus(
                         task.id,
                         user.uid,
-                        !task.isCompleted,
+                        task.isCompleted ? false : true,
                       );
                 }
               },
-              child: Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: task.isCompleted
+                          ? const Color(0xFF03DAC6)
+                          : Colors.white24,
+                      width: 2,
+                    ),
                     color: task.isCompleted
-                        ? const Color(0xFF03DAC6)
-                        : Colors.white24,
-                    width: 2,
+                        ? const Color(0xFF03DAC6).withOpacity(0.2)
+                        : Colors.transparent,
                   ),
-                  color: task.isCompleted
-                      ? const Color(0xFF03DAC6).withOpacity(0.2)
-                      : Colors.transparent,
+                  child: task.isCompleted
+                      ? const Icon(
+                          Icons.check,
+                          size: 16,
+                          color: Color(0xFF03DAC6),
+                        )
+                      : null,
                 ),
-                child: task.isCompleted
-                    ? const Icon(
-                        Icons.check,
-                        size: 16,
-                        color: Color(0xFF03DAC6),
-                      )
-                    : null,
               ),
             ),
             const SizedBox(width: 20),
@@ -244,15 +290,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       decorationColor: Colors.white54,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    task.category,
-                    style: TextStyle(
-                      color: _getCategoryColor(task.category),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -269,19 +306,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         ),
       ),
     );
-  }
-
-  Color _getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'personal':
-        return const Color(0xFFBB86FC);
-      case 'work':
-        return const Color(0xFF03DAC6);
-      case 'shopping':
-        return const Color(0xFFFFB74D);
-      default:
-        return Colors.blueAccent;
-    }
   }
 
   void _showAddTaskSheet(BuildContext context) {
@@ -330,22 +354,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<String>(
-                  initialValue: 'Personal',
-                  dropdownColor: const Color(0xFF1F1B24),
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                    labelStyle: TextStyle(color: Colors.white54),
-                    border: InputBorder.none,
-                  ),
-                  items: ['Personal', 'Work', 'Shopping', 'Health']
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-                  onChanged: (v) => categoryController.text = v ?? 'Personal',
-                ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 50),
                 SizedBox(
                   width: double.infinity,
                   height: 55,

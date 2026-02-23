@@ -12,6 +12,7 @@ abstract class AuthRemoteDataSource {
   );
   Future<void> logout();
   Future<UserModel?> getCurrentUser();
+  Future<void> updateUserProfile(String uid, Map<String, dynamic> data);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -116,6 +117,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return UserModel.fromJson(doc.data()!, documentId: doc.id);
     } catch (e) {
       throw ServerException('Failed to fetch user profile.');
+    }
+  }
+
+  @override
+  Future<void> updateUserProfile(String uid, Map<String, dynamic> data) async {
+    try {
+      await firestore.collection('users').doc(uid).update(data);
+    } catch (e) {
+      throw ServerException('Failed to update user profile.');
     }
   }
 }

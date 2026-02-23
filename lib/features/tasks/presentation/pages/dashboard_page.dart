@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:task_manager/core/presentation/widgets/glass_container.dart';
 import 'package:task_manager/features/tasks/presentation/providers/task_provider.dart';
-import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart'
-    as auth;
+import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart';
 import 'package:task_manager/models/task_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:task_manager/features/auth/presentation/pages/profile_page.dart';
 
-class DashboardPage extends StatefulWidget {
+class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  ConsumerState<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        context.read<TaskProvider>().fetchTasks(user.uid);
+        ref.read(taskProvider.notifier).fetchTasks(user.uid);
+        ref.read(authProvider.notifier).fetchProfile();
       }
     });
   }
@@ -66,53 +67,55 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildHeader() {
-    return Consumer<auth.AuthProvider>(
-      builder: (context, provider, child) {
-        final name = provider.user?.name ?? 'User';
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final authState = ref.watch(authProvider);
+    final name = authState.user?.name ?? 'User';
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hello, ${name.split(' ').first}!',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const CircleAvatar(
-              radius: 25,
-              backgroundColor: Color(0xFF1F1B24),
-              child: Icon(Icons.person, color: Colors.white),
+            Text(
+              'Hello, ${name.split(' ').first}!',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
-        );
-      },
+        ),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          },
+          child: const CircleAvatar(
+            radius: 25,
+            backgroundColor: Color(0xFF1F1B24),
+            child: Icon(Icons.person, color: Colors.white),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildStatsRow() {
-    return Consumer<TaskProvider>(
-      builder: (context, provider, child) {
-        final total = provider.tasks.length;
-        final completed = provider.tasks.where((t) => t.isCompleted).length;
-        return Row(
-          children: [
-            _buildStatCard(
-              'Active',
-              '${total - completed}',
-              const Color(0xFF03DAC6),
-            ),
-            const SizedBox(width: 15),
-            _buildStatCard('Done', '$completed', const Color(0xFFBB86FC)),
-          ],
-        );
-      },
+    final state = ref.watch(taskProvider);
+    final total = state.tasks.length;
+    final completed = state.tasks.where((t) => t.isCompleted).length;
+    return Row(
+      children: [
+        _buildStatCard(
+          'Active',
+          '${total - completed}',
+          const Color(0xFF03DAC6),
+        ),
+        const SizedBox(width: 15),
+        _buildStatCard('Done', '$completed', const Color(0xFFBB86FC)),
+      ],
     );
   }
 
@@ -142,44 +145,43 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTaskList() {
-    return Consumer<TaskProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading && provider.tasks.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFBB86FC)),
-          );
-        }
-        if (provider.error != null && provider.tasks.isEmpty) {
-          return Center(
-            child: Text(
-              'L error: ${provider.error}',
-              style: const TextStyle(color: Colors.redAccent),
-            ),
-          );
-        }
-        if (provider.tasks.isEmpty) {
-          return const Center(
-            child: Text(
-              'No tasks yet.',
-              style: TextStyle(color: Colors.white38),
-            ),
-          );
-        }
+    final state = ref.watch(taskProvider);
+    if (state.isLoading && state.tasks.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFBB86FC)),
+      );
+    }
+    if (state.error != null && state.tasks.isEmpty) {
+      return Center(
+        child: Text(
+          'L error: ${state.error}',
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
+    }
+    if (state.tasks.isEmpty) {
+      return const Center(
+        child: Text(
+          'No tasks yet.',
+          style: TextStyle(color: Colors.white38),
+        ),
+      );
+    }
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            final user = FirebaseAuth.instance.currentUser;
-            if (user != null) await provider.fetchTasks(user.uid);
-          },
-          child: ListView.builder(
-            itemCount: provider.tasks.length,
-            itemBuilder: (context, index) {
-              final task = provider.tasks[index];
-              return _buildTaskItem(task);
-            },
-          ),
-        );
+    return RefreshIndicator(
+      onRefresh: () async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await ref.read(taskProvider.notifier).fetchTasks(user.uid);
+        }
       },
+      child: ListView.builder(
+        itemCount: state.tasks.length,
+        itemBuilder: (context, index) {
+          final task = state.tasks[index];
+          return _buildTaskItem(task);
+        },
+      ),
     );
   }
 
@@ -194,11 +196,11 @@ class _DashboardPageState extends State<DashboardPage> {
               onTap: () {
                 final user = FirebaseAuth.instance.currentUser;
                 if (user != null) {
-                  context.read<TaskProvider>().updateTaskStatus(
-                    task.id,
-                    user.uid,
-                    !task.isCompleted,
-                  );
+                  ref.read(taskProvider.notifier).updateTaskStatus(
+                        task.id,
+                        user.uid,
+                        !task.isCompleted,
+                      );
                 }
               },
               child: Container(
@@ -258,8 +260,9 @@ class _DashboardPageState extends State<DashboardPage> {
               icon: const Icon(Icons.delete_outline, color: Colors.white38),
               onPressed: () {
                 final user = FirebaseAuth.instance.currentUser;
-                if (user != null)
-                  context.read<TaskProvider>().deleteTask(task.id, user.uid);
+                if (user != null) {
+                  ref.read(taskProvider.notifier).deleteTask(task.id, user.uid);
+                }
               },
             ),
           ],
@@ -361,7 +364,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             dueDate: DateTime.now(),
                             createdDate: DateTime.now(),
                           );
-                          context.read<TaskProvider>().addTask(task, user.uid);
+                          ref
+                              .read(taskProvider.notifier)
+                              .addTask(task, user.uid);
                           Navigator.pop(context);
                         }
                       }

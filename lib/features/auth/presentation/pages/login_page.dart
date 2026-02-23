@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart'
-    as auth;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart';
 import 'package:task_manager/core/presentation/widgets/glass_container.dart';
 import 'package:task_manager/core/presentation/widgets/cust_text_field.dart';
 import 'package:task_manager/core/presentation/widgets/cust_button.dart';
 import 'package:task_manager/features/auth/presentation/pages/register_page.dart';
 import 'package:task_manager/features/tasks/presentation/pages/dashboard_page.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -23,18 +22,19 @@ class _LoginPageState extends State<LoginPage> {
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final provider = context.read<auth.AuthProvider>();
-    await provider.login(
+    await ref.read(authProvider.notifier).login(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
     if (!mounted) return;
 
-    if (provider.error != null) {
+    final state = ref.read(authProvider);
+
+    if (state.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(provider.error!),
+          content: Text(state.error!),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -55,6 +55,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(authProvider);
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
@@ -127,14 +129,10 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 30),
-                      Consumer<auth.AuthProvider>(
-                        builder: (context, provider, child) {
-                          return CustButton(
-                            text: 'LET ME IN',
-                            onPressed: provider.isLoading ? null : _login,
-                            isLoading: provider.isLoading,
-                          );
-                        },
+                      CustButton(
+                        text: 'LET ME IN',
+                        onPressed: state.isLoading ? null : _login,
+                        isLoading: state.isLoading,
                       ),
                       const SizedBox(height: 20),
                     ],

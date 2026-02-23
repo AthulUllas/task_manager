@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart'
-    as auth;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart';
 import 'package:task_manager/core/presentation/widgets/glass_container.dart';
 import 'package:task_manager/core/presentation/widgets/cust_text_field.dart';
 import 'package:task_manager/core/presentation/widgets/cust_button.dart';
 import 'package:task_manager/features/tasks/presentation/pages/dashboard_page.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -23,8 +22,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final provider = context.read<auth.AuthProvider>();
-    await provider.register(
+    await ref.read(authProvider.notifier).register(
       _emailController.text.trim(),
       _passwordController.text.trim(),
       _nameController.text.trim(),
@@ -32,10 +30,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (!mounted) return;
 
-    if (provider.error != null) {
+    final state = ref.read(authProvider);
+
+    if (state.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(provider.error!),
+          content: Text(state.error!),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -56,6 +56,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(authProvider);
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
@@ -132,14 +134,10 @@ class _RegisterPageState extends State<RegisterPage> {
                         },
                       ),
                       const SizedBox(height: 32),
-                      Consumer<auth.AuthProvider>(
-                        builder: (context, provider, child) {
-                          return CustButton(
-                            text: 'SIGN UP',
-                            isLoading: provider.isLoading,
-                            onPressed: provider.isLoading ? null : _register,
-                          );
-                        },
+                      CustButton(
+                        text: 'SIGN UP',
+                        isLoading: state.isLoading,
+                        onPressed: state.isLoading ? null : _register,
                       ),
                     ],
                   ),

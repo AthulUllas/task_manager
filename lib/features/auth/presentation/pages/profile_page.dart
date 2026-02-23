@@ -45,9 +45,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await ref
-        .read(authProvider.notifier)
-        .updateProfile(name: _nameController.text.trim());
+    await ref.read(authProvider.notifier).updateProfile(
+          name: _nameController.text.trim(),
+        );
 
     if (!mounted) return;
 
@@ -69,6 +69,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
+  void _updateTheme(bool isDark) {
+    ref.read(authProvider.notifier).updateProfile(
+          themeMode: isDark ? 'dark' : 'light',
+        );
+  }
+
   void _logout() async {
     await ref.read(authProvider.notifier).logout();
     if (!mounted) return;
@@ -84,8 +90,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final state = ref.watch(authProvider);
     final user = state.user;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -109,7 +116,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   const SizedBox(height: 16),
                   Text(
                     user.email,
-                    style: const TextStyle(color: Colors.white70, fontSize: 16),
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   GlassContainer(
@@ -118,10 +128,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Display Name',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.white 
+                                  : Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -143,44 +155,51 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                   ),
                                   width: double.infinity,
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
+                                    color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Text(
                                     user.name,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white : Colors.black,
                                       fontSize: 16,
                                     ),
                                   ),
                                 ),
                           const SizedBox(height: 24),
-                          const Text(
-                            'Theme Mode',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 16,
-                            ),
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              user.themeMode.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Dark Mode',
+                                    style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark 
+                                          ? Colors.white 
+                                          : Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Currently ${user.themeMode.toUpperCase()}',
+                                    style: TextStyle(
+                                      color: (Theme.of(context).brightness == Brightness.dark 
+                                          ? Colors.white 
+                                          : Colors.black).withOpacity(0.5),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                              Switch(
+                                value: user.themeMode == 'dark',
+                                activeColor: const Color(0xFFBB86FC),
+                                onChanged: _updateTheme,
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -202,9 +221,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'CANCEL',
-                                  style: TextStyle(color: Colors.white),
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
                                 ),
                               ),
                             ),

@@ -53,8 +53,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         TaskSnackbar.showError(context, 'MISSION FAILED', next.error!);
       }
     });
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF5F5F7),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -89,7 +90,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         onPressed: () => _showAddTaskSheet(context),
         backgroundColor: const Color(0xFFBB86FC),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.add, color: Colors.black, size: 30),
+        child: Icon(
+          Icons.add,
+          color: isDark ? Colors.black : Colors.white,
+          size: 30,
+        ),
       ),
     );
   }
@@ -97,6 +102,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget _buildHeader() {
     final authState = ref.watch(authProvider);
     final name = authState.user?.name ?? 'User';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -105,8 +112,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           children: [
             Text(
               'Hello, ${name.split(' ').first}!',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
               ),
@@ -120,10 +127,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               MaterialPageRoute(builder: (context) => const ProfilePage()),
             );
           },
-          child: const CircleAvatar(
+          child: CircleAvatar(
             radius: 25,
-            backgroundColor: Color(0xFF1F1B24),
-            child: Icon(Icons.person, color: Colors.white),
+            backgroundColor: isDark ? const Color(0xFF1F1B24) : Colors.white,
+            child: Icon(
+              Icons.person,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
         ),
       ],
@@ -148,6 +158,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildStatCard(String label, String value, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: GlassContainer(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
@@ -164,7 +175,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             const SizedBox(height: 5),
             Text(
               label,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -174,6 +188,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildFilterChips() {
     final activeFilter = ref.watch(taskFilterProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -185,7 +200,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               label: Text(
                 filter.name.toUpperCase(),
                 style: TextStyle(
-                  color: isSelected ? Colors.black : Colors.white70,
+                  color: isSelected
+                      ? (isDark ? Colors.black : Colors.white)
+                      : (isDark ? Colors.white70 : Colors.black87),
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -194,13 +211,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               onSelected: (selected) {
                 ref.read(taskFilterProvider.notifier).state = filter;
               },
-              backgroundColor: const Color(0xFF1F1B24),
+              backgroundColor: isDark ? const Color(0xFF1F1B24) : Colors.white,
               selectedColor: const Color(0xFFBB86FC),
-              checkmarkColor: Colors.black,
+              checkmarkColor: isDark ? Colors.black : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: isSelected ? Colors.transparent : Colors.white12,
+                  color: isSelected
+                      ? Colors.transparent
+                      : (isDark ? Colors.white12 : Colors.black12),
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -213,14 +232,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildSortChips() {
     final activeSort = ref.watch(taskSortProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          const Text(
+          Text(
             'SORT BY: ',
             style: TextStyle(
-              color: Colors.white38,
+              color: isDark ? Colors.white38 : Colors.black38,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
@@ -246,7 +266,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 label: Text(
                   label,
                   style: TextStyle(
-                    color: isSelected ? Colors.black : Colors.white60,
+                    color: isSelected
+                        ? (isDark ? Colors.black : Colors.white)
+                        : (isDark ? Colors.white60 : Colors.black54),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -258,11 +280,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   }
                 },
                 backgroundColor: Colors.transparent,
-                selectedColor: const Color(0xFF03DAC6),
+                selectedColor: isDark ? const Color(0xFF03DAC6) : Colors.deepPurple.shade300,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
-                    color: isSelected ? Colors.transparent : Colors.white10,
+                    color: isSelected
+                        ? Colors.transparent
+                        : (isDark ? Colors.white10 : Colors.black12),
                   ),
                 ),
               ),
@@ -313,7 +337,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildTaskItem(TaskModel task) {
-    Color priorityColor = Colors.white54;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    Color priorityColor = isDark ? Colors.white54 : Colors.black54;
     switch (task.priority.toLowerCase()) {
       case 'urgent':
         priorityColor = Colors.redAccent;
@@ -385,13 +410,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         child: Text(
                           task.title,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             decoration: task.isCompleted
                                 ? TextDecoration.lineThrough
                                 : null,
-                            decorationColor: Colors.white54,
+                            decorationColor:
+                                isDark ? Colors.white54 : Colors.black54,
                           ),
                         ),
                       ),
@@ -429,8 +455,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       const SizedBox(width: 4),
                       Text(
                         task.category,
-                        style: const TextStyle(
-                          color: Colors.white38,
+                        style: TextStyle(
+                          color: isDark ? Colors.white38 : Colors.black38,
                           fontSize: 12,
                         ),
                       ),
@@ -443,8 +469,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       const SizedBox(width: 4),
                       Text(
                         '${task.dueDate.day}/${task.dueDate.month}/${task.dueDate.year}',
-                        style: const TextStyle(
-                          color: Colors.white38,
+                        style: TextStyle(
+                          color: isDark ? Colors.white38 : Colors.black38,
                           fontSize: 12,
                         ),
                       ),
@@ -478,6 +504,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     String selectedPriority = 'Medium';
     DateTime selectedDate = DateTime.now();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -491,9 +519,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1F1B24),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1F1B24) : Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(32),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -511,14 +541,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     TextField(
                       controller: titleController,
                       autofocus: true,
-                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontSize: 20,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Task Title...',
-                        hintStyle: const TextStyle(color: Colors.white24),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white12),
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white24 : Colors.black26,
                         ),
-                        focusedBorder: UnderlineInputBorder(
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDark ? Colors.white12 : Colors.black12,
+                          ),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
                           borderSide: BorderSide(color: Color(0xFFBB86FC)),
                         ),
                       ),
@@ -540,15 +577,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               ),
                               DropdownButton<String>(
                                 value: selectedPriority,
-                                dropdownColor: const Color(0xFF1F1B24),
-                                isExpanded: true,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black,
                                   fontSize: 14,
                                 ),
                                 underline: Container(
                                   height: 1,
-                                  color: Colors.white12,
+                                  color: isDark
+                                      ? Colors.white12
+                                      : Colors.black12,
                                 ),
                                 items: ['Low', 'Medium', 'High', 'Urgent'].map((
                                   String value,
@@ -590,12 +627,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                     builder: (context, child) {
                                       return Theme(
                                         data: Theme.of(context).copyWith(
-                                          colorScheme: const ColorScheme.dark(
-                                            primary: Color(0xFFBB86FC),
-                                            onPrimary: Colors.black,
-                                            surface: Color(0xFF1F1B24),
-                                            onSurface: Colors.white,
-                                          ),
+                                          colorScheme: isDark
+                                              ? const ColorScheme.dark(
+                                                  primary: Color(0xFFBB86FC),
+                                                  onPrimary: Colors.black,
+                                                  surface: Color(0xFF1F1B24),
+                                                  onSurface: Colors.white,
+                                                )
+                                              : const ColorScheme.light(
+                                                  primary: Color(0xFFBB86FC),
+                                                  onPrimary: Colors.white,
+                                                  surface: Colors.white,
+                                                  onSurface: Colors.black,
+                                                ),
                                         ),
                                         child: child!,
                                       );
@@ -650,14 +694,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     ),
                     TextField(
                       controller: categoryController,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      decoration: const InputDecoration(
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
                         hintText: 'e.g. Work, Personal, Gym...',
-                        hintStyle: TextStyle(color: Colors.white24),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white12),
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white24 : Colors.black26,
                         ),
-                        focusedBorder: UnderlineInputBorder(
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDark ? Colors.white12 : Colors.black12,
+                          ),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
                           borderSide: BorderSide(color: Color(0xFFBB86FC)),
                         ),
                       ),
@@ -690,7 +741,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFBB86FC),
-                          foregroundColor: Colors.black,
+                          foregroundColor: isDark ? Colors.black : Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),

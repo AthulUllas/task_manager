@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:task_manager/features/auth/presentation/pages/login_page.dart';
 import 'package:task_manager/features/tasks/presentation/pages/dashboard_page.dart';
 import 'package:task_manager/firebase_options.dart';
+import 'package:task_manager/core/presentation/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,19 +19,49 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Task Manager',
       theme: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.deepPurple,
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF5F5F7),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          titleTextStyle: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
+          iconTheme: IconThemeData(color: Colors.black),
+        ),
+      ),
+      darkTheme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.deepPurple,
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF0D0D0D),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
       ),
+      themeMode: themeMode,
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {

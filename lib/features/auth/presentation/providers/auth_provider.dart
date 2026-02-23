@@ -103,13 +103,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> updateProfile({required String name}) async {
+  Future<void> updateProfile({String? name, String? themeMode}) async {
     if (state.user == null) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _updateProfileUseCase(state.user!.id, {'name': name});
+      final updates = <String, dynamic>{};
+      if (name != null) updates['name'] = name;
+      if (themeMode != null) updates['themeMode'] = themeMode;
+
+      await _updateProfileUseCase(state.user!.id, updates);
+      
       state = state.copyWith(
-        user: state.user!.copyWith(name: name),
+        user: state.user!.copyWith(
+          name: name ?? state.user!.name,
+          themeMode: themeMode ?? state.user!.themeMode,
+        ),
         isLoading: false,
       );
     } on ServerException catch (e) {

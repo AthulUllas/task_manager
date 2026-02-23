@@ -5,6 +5,7 @@ import 'package:task_manager/features/tasks/presentation/providers/task_provider
 import 'package:task_manager/features/auth/presentation/providers/auth_provider.dart';
 import 'package:task_manager/models/task_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:task_manager/features/auth/presentation/pages/profile_page.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
@@ -27,8 +28,41 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     });
   }
 
+  void _showConnectivitySnackbar(List<ConnectivityResult> results) {
+    final isOffline = results.contains(ConnectivityResult.none);
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isOffline ? 'No Internet' : 'Back online',
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: isOffline ? Colors.redAccent : Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Listen for connectivity changes
+    ref.listen<AsyncValue<List<ConnectivityResult>>>(
+      connectivityStreamProvider,
+      (previous, next) {
+        next.whenData(_showConnectivitySnackbar);
+      },
+    );
+
+    ref.listen(taskProvider, (previous, next) {
+      if (next.error != null && next.error != previous?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    });
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
       body: SafeArea(

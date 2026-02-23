@@ -1,9 +1,12 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
+import 'package:task_manager/features/tasks/data/datasources/task_local_data_source.dart';
+import 'package:task_manager/features/tasks/data/datasources/task_remote_data_source.dart';
+import 'package:task_manager/features/tasks/data/repositories/task_repository_impl.dart';
 import 'package:task_manager/features/tasks/domain/repositories/task_repository.dart';
 import 'package:task_manager/models/task_model.dart';
 import 'package:task_manager/core/errors/exceptions.dart';
-import 'package:task_manager/features/tasks/data/repositories/task_repository_impl.dart';
-import 'package:task_manager/features/tasks/data/datasources/task_remote_data_source.dart';
 import 'package:task_manager/core/providers.dart';
 
 class TaskState {
@@ -55,7 +58,10 @@ class TaskNotifier extends StateNotifier<TaskState> {
     } on ServerException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Failed to add task.');
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
     }
   }
 
@@ -75,7 +81,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
         }
         return t;
       }).toList();
-      state = state.copyWith(tasks: optimisticTasks);
+      state = state.copyWith(tasks: optimisticTasks, error: null);
 
       final updates = {
         'id': taskId,
@@ -99,8 +105,11 @@ class TaskNotifier extends StateNotifier<TaskState> {
       }).toList();
       state = state.copyWith(tasks: syncedTasks);
     } catch (e) {
-      // Revert if failed
-      state = state.copyWith(tasks: oldTasks, error: 'Failed to update task.');
+      // Revert if failed and show specific error
+      state = state.copyWith(
+        tasks: oldTasks,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
     }
   }
 
@@ -108,9 +117,11 @@ class TaskNotifier extends StateNotifier<TaskState> {
     try {
       await _repository.deleteTask(taskId, userId);
       final updatedTasks = state.tasks.where((t) => t.id != taskId).toList();
-      state = state.copyWith(tasks: updatedTasks);
+      state = state.copyWith(tasks: updatedTasks, error: null);
     } catch (e) {
-      state = state.copyWith(error: 'Failed to delete task.');
+      state = state.copyWith(
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
     }
   }
 }
@@ -160,7 +171,11 @@ final filteredTasksProvider = Provider<List<TaskModel>>((ref) {
       filtered.sort((a, b) => a.dueDate.compareTo(b.dueDate));
       break;
     case TaskSort.priority:
-      filtered.sort((a, b) => _getPriorityValue(b.priority).compareTo(_getPriorityValue(a.priority)));
+      filtered.sort(
+        (a, b) => _getPriorityValue(
+          b.priority,
+        ).compareTo(_getPriorityValue(a.priority)),
+      );
       break;
     case TaskSort.createdDate:
       filtered.sort((a, b) => b.createdDate.compareTo(a.createdDate));
@@ -174,9 +189,25 @@ final _taskRemoteDataSourceProvider = Provider<TaskRemoteDataSource>((ref) {
   return TaskRemoteDataSourceImpl(client: ref.watch(httpClientProvider));
 });
 
+final connectivityProvider = Provider<Connectivity>((ref) {
+  return Connectivity();
+});
+
+final connectivityStreamProvider = StreamProvider<List<ConnectivityResult>>((
+  ref,
+) {
+  return ref.watch(connectivityProvider).onConnectivityChanged;
+});
+
+final taskLocalDataSourceProvider = Provider<TaskLocalDataSource>((ref) {
+  return TaskLocalDataSourceImpl(box: Hive.box('tasks_box'));
+});
+
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   return TaskRepositoryImpl(
     remoteDataSource: ref.watch(_taskRemoteDataSourceProvider),
+    localDataSource: ref.watch(taskLocalDataSourceProvider),
+    connectivity: ref.watch(connectivityProvider),
   );
 });
 

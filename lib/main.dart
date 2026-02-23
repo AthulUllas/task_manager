@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:task_manager/features/auth/presentation/pages/login_page.dart';
 import 'package:task_manager/features/tasks/presentation/pages/dashboard_page.dart';
 import 'package:task_manager/firebase_options.dart';
@@ -9,6 +10,10 @@ import 'package:task_manager/firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Initialize Hive
+  await Hive.initFlutter();
+  await Hive.openBox('tasks_box');
 
   runApp(
     const ProviderScope(

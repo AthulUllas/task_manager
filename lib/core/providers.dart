@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 // Firebase
-final firebaseAuthProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
-final firestoreProvider = Provider<FirebaseFirestore>((ref) => FirebaseFirestore.instance);
+final firebaseAuthProvider = Provider<FirebaseAuth>(
+  (ref) => FirebaseAuth.instance,
+);
+final firestoreProvider = Provider<FirebaseFirestore>(
+  (ref) => FirebaseFirestore.instance,
+);
 
-// HTTP Client
 final httpClientProvider = Provider<http.Client>((ref) {
   final client = http.Client();
   ref.onDispose(() => client.close());

@@ -43,6 +43,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               _buildStatsRow(),
               const SizedBox(height: 30),
               _buildFilterChips(),
+              const SizedBox(height: 15),
+              _buildSortChips(),
               const SizedBox(height: 30),
               const Text(
                 'YOUR TASKS',
@@ -185,6 +187,56 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
+  Widget _buildSortChips() {
+    final activeSort = ref.watch(taskSortProvider);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          const Text(
+            'SORT BY: ',
+            style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 8),
+          ...TaskSort.values.map((sort) {
+            final isSelected = activeSort == sort;
+            String label = '';
+            switch (sort) {
+              case TaskSort.dueDate: label = 'DUE DATE'; break;
+              case TaskSort.priority: label = 'PRIORITY'; break;
+              case TaskSort.createdDate: label = 'CREATED'; break;
+            }
+            return Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: ChoiceChip(
+                label: Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.black : Colors.white60,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                selected: isSelected,
+                onSelected: (selected) {
+                  if (selected) {
+                    ref.read(taskSortProvider.notifier).state = sort;
+                  }
+                },
+                backgroundColor: Colors.transparent,
+                selectedColor: const Color(0xFF03DAC6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: isSelected ? Colors.transparent : Colors.white10),
+                ),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTaskList() {
     final filteredTasks = ref.watch(filteredTasksProvider);
     final state = ref.watch(taskProvider);
@@ -225,29 +277,36 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildTaskItem(TaskModel task) {
+    Color priorityColor = Colors.white54;
+    switch (task.priority.toLowerCase()) {
+      case 'urgent': priorityColor = Colors.redAccent; break;
+      case 'high': priorityColor = Colors.orangeAccent; break;
+      case 'medium': priorityColor = Colors.blueAccent; break;
+      case 'low': priorityColor = Colors.greenAccent; break;
+    }
+
     return Container(
       key: ValueKey(task.id),
       margin: const EdgeInsets.only(bottom: 15),
       child: GlassContainer(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
                 final user = FirebaseAuth.instance.currentUser;
                 if (user != null) {
-                  ref
-                      .read(taskProvider.notifier)
-                      .updateTaskStatus(
+                  ref.read(taskProvider.notifier).updateTaskStatus(
                         task.id,
                         user.uid,
-                        task.isCompleted ? false : true,
+                        !task.isCompleted,
                       );
                 }
               },
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.only(top: 2.0),
                 child: Container(
                   width: 26,
                   height: 26,
@@ -273,28 +332,68 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 15),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    task.title,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      decoration: task.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
-                      decorationColor: Colors.white54,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            decoration: task.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                            decorationColor: Colors.white54,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: priorityColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: priorityColor.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          task.priority.toUpperCase(),
+                          style: TextStyle(
+                            color: priorityColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.category_outlined, size: 14, color: Colors.white38),
+                      const SizedBox(width: 4),
+                      Text(
+                        task.category,
+                        style: const TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                      const SizedBox(width: 15),
+                      Icon(Icons.calendar_today_outlined, size: 14, color: Colors.white38),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${task.dueDate.day}/${task.dueDate.month}/${task.dueDate.year}',
+                        style: const TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.white38),
+              icon: const Icon(Icons.delete_outline, color: Colors.white38, size: 20),
               onPressed: () {
                 final user = FirebaseAuth.instance.currentUser;
                 if (user != null) {
@@ -311,95 +410,200 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   void _showAddTaskSheet(BuildContext context) {
     final titleController = TextEditingController();
     final categoryController = TextEditingController(text: 'Personal');
+    String selectedPriority = 'Medium';
+    DateTime selectedDate = DateTime.now();
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1F1B24),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'NEW MISSION',
-                  style: TextStyle(
-                    color: Color(0xFFBB86FC),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1F1B24),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                 ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: titleController,
-                  style: const TextStyle(color: Colors.white, fontSize: 20),
-                  decoration: InputDecoration(
-                    hintText: 'Task Title...',
-                    hintStyle: const TextStyle(color: Colors.white24),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white12),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 50),
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (titleController.text.isNotEmpty) {
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user != null) {
-                          final task = TaskModel(
-                            id: '',
-                            userId: user.uid,
-                            title: titleController.text,
-                            description: '',
-                            priority: 'Medium',
-                            category: categoryController.text,
-                            dueDate: DateTime.now(),
-                            createdDate: DateTime.now(),
-                          );
-                          ref
-                              .read(taskProvider.notifier)
-                              .addTask(task, user.uid);
-                          Navigator.pop(context);
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFBB86FC),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'IGNITE',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'NEW MISSION',
                       style: TextStyle(
+                        color: Color(0xFFBB86FC),
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        letterSpacing: 1.5,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: titleController,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                      decoration: InputDecoration(
+                        hintText: 'Task Title...',
+                        hintStyle: const TextStyle(color: Colors.white24),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white12),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('PRIORITY',
+                                  style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+                              DropdownButton<String>(
+                                value: selectedPriority,
+                                dropdownColor: const Color(0xFF1F1B24),
+                                isExpanded: true,
+                                style: const TextStyle(color: Colors.white, fontSize: 14),
+                                underline: Container(height: 1, color: Colors.white12),
+                                items: ['Low', 'Medium', 'High', 'Urgent'].map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                }).toList(),
+                                onChanged: (newValue) {
+                                  setModalState(() {
+                                    selectedPriority = newValue!;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('DUE DATE',
+                                  style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+                              InkWell(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: selectedDate,
+                                    firstDate: DateTime.now(),
+                                    lastDate: DateTime(2101),
+                                    builder: (context, child) {
+                                      return Theme(
+                                        data: Theme.of(context).copyWith(
+                                          colorScheme: const ColorScheme.dark(
+                                            primary: Color(0xFFBB86FC),
+                                            onPrimary: Colors.black,
+                                            surface: Color(0xFF1F1B24),
+                                            onSurface: Colors.white,
+                                          ),
+                                        ),
+                                        child: child!,
+                                      );
+                                    },
+                                  );
+                                  if (picked != null) {
+                                    setModalState(() => selectedDate = picked);
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: const BoxDecoration(
+                                    border: Border(bottom: BorderSide(color: Colors.white12)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                                          style: const TextStyle(color: Colors.white, fontSize: 14)),
+                                      const Icon(Icons.calendar_today, size: 16, color: Colors.white38),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 25),
+                    const Text('CATEGORY',
+                        style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+                    TextField(
+                      controller: categoryController,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. Work, Personal, Gym...',
+                        hintStyle: TextStyle(color: Colors.white24),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white12),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (titleController.text.isNotEmpty) {
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user != null) {
+                              final task = TaskModel(
+                                id: '',
+                                userId: user.uid,
+                                title: titleController.text,
+                                description: '',
+                                priority: selectedPriority,
+                                category: categoryController.text,
+                                dueDate: selectedDate,
+                                createdDate: DateTime.now(),
+                              );
+                              ref.read(taskProvider.notifier).addTask(task, user.uid);
+                              Navigator.pop(context);
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFBB86FC),
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'IGNITE',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

@@ -117,20 +117,57 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
 enum TaskFilter { all, pending, completed }
 
+enum TaskSort { dueDate, priority, createdDate }
+
 final taskFilterProvider = StateProvider<TaskFilter>((ref) => TaskFilter.all);
+final taskSortProvider = StateProvider<TaskSort>((ref) => TaskSort.createdDate);
+
+int _getPriorityValue(String priority) {
+  switch (priority.toLowerCase()) {
+    case 'urgent':
+      return 3;
+    case 'high':
+      return 2;
+    case 'medium':
+      return 1;
+    case 'low':
+      return 0;
+    default:
+      return 1;
+  }
+}
 
 final filteredTasksProvider = Provider<List<TaskModel>>((ref) {
   final filter = ref.watch(taskFilterProvider);
+  final sort = ref.watch(taskSortProvider);
   final taskState = ref.watch(taskProvider);
 
+  List<TaskModel> filtered;
   switch (filter) {
     case TaskFilter.all:
-      return taskState.tasks;
+      filtered = [...taskState.tasks];
+      break;
     case TaskFilter.pending:
-      return taskState.tasks.where((task) => !task.isCompleted).toList();
+      filtered = taskState.tasks.where((task) => !task.isCompleted).toList();
+      break;
     case TaskFilter.completed:
-      return taskState.tasks.where((task) => task.isCompleted).toList();
+      filtered = taskState.tasks.where((task) => task.isCompleted).toList();
+      break;
   }
+
+  switch (sort) {
+    case TaskSort.dueDate:
+      filtered.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      break;
+    case TaskSort.priority:
+      filtered.sort((a, b) => _getPriorityValue(b.priority).compareTo(_getPriorityValue(a.priority)));
+      break;
+    case TaskSort.createdDate:
+      filtered.sort((a, b) => b.createdDate.compareTo(a.createdDate));
+      break;
+  }
+
+  return filtered;
 });
 
 final _taskRemoteDataSourceProvider = Provider<TaskRemoteDataSource>((ref) {

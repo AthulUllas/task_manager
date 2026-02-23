@@ -5,6 +5,7 @@ import 'package:task_manager/core/presentation/widgets/glass_container.dart';
 import 'package:task_manager/core/presentation/widgets/cust_text_field.dart';
 import 'package:task_manager/core/presentation/widgets/cust_button.dart';
 import 'package:task_manager/features/tasks/presentation/pages/dashboard_page.dart';
+import 'package:task_manager/core/utils/snackbar_utils.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -33,18 +34,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final state = ref.read(authProvider);
 
     if (state.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.error!),
-          backgroundColor: Colors.redAccent,
-        ),
+      TaskSnackbar.showError(
+        context,
+        'REGISTRATION FAILED',
+        state.error!,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration Successful! 🔥'),
-          backgroundColor: Colors.green,
-        ),
+      TaskSnackbar.showSuccess(
+        context,
+        'WELCOME ABOARD',
+        'Registration Successful! 🔥',
       );
       Navigator.pushAndRemoveUntil(
         context,

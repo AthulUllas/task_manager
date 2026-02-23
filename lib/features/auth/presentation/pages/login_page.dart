@@ -6,6 +6,7 @@ import 'package:task_manager/core/presentation/widgets/cust_text_field.dart';
 import 'package:task_manager/core/presentation/widgets/cust_button.dart';
 import 'package:task_manager/features/auth/presentation/pages/register_page.dart';
 import 'package:task_manager/features/tasks/presentation/pages/dashboard_page.dart';
+import 'package:task_manager/core/utils/snackbar_utils.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -32,18 +33,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final state = ref.read(authProvider);
 
     if (state.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.error!),
-          backgroundColor: Colors.redAccent,
-        ),
+      TaskSnackbar.showError(
+        context,
+        'LOGIN FAILED',
+        state.error!,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login Successful! 🚀'),
-          backgroundColor: Colors.green,
-        ),
+      TaskSnackbar.showSuccess(
+        context,
+        'WELCOME BACK',
+        'Login Successful! 🚀',
       );
       Navigator.pushAndRemoveUntil(
         context,
